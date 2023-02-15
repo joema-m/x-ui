@@ -1,4 +1,9 @@
 {
+  "log": {
+    "access": "/tmp/access.log",
+    "loglevel": "info",
+    "dnsLog": false
+  },
   "api": {
     "services": [
       "HandlerService",

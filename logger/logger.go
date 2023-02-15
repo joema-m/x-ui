@@ -1,8 +1,9 @@
 package logger
 
 import (
-	"github.com/op/go-logging"
 	"os"
+
+	"github.com/op/go-logging"
 )
 
 var logger *logging.Logger
@@ -12,11 +13,12 @@ func init() {
 }
 
 func InitLogger(level logging.Level) {
+	file, _ := os.OpenFile("/tmp/x-ui.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 	format := logging.MustStringFormatter(
 		`%{time:2006/01/02 15:04:05} %{level} - %{message}`,
 	)
 	newLogger := logging.MustGetLogger("x-ui")
-	backend := logging.NewLogBackend(os.Stderr, "", 0)
+	backend := logging.NewLogBackend(file, "", 0)
 	backendFormatter := logging.NewBackendFormatter(backend, format)
 	backendLeveled := logging.AddModuleLevel(backendFormatter)
 	backendLeveled.SetLevel(level, "")

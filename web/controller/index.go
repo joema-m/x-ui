@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"encoding/json"
+	"io"
 	"net/http"
 	"time"
 	"x-ui/logger"
@@ -20,6 +22,11 @@ type IndexController struct {
 	BaseController
 
 	userService service.UserService
+}
+
+type Location struct {
+	Country string `json:"country"`
+	City    string `json:"city"`
 }
 
 func NewIndexController(g *gin.RouterGroup) *IndexController {
@@ -43,8 +50,25 @@ func (a *IndexController) index(c *gin.Context) {
 }
 
 func (a *IndexController) login(c *gin.Context) {
+	ip := c.ClientIP()
+	url := "http://ip-api.com/json/" + ip
+	response, err := http.Get(url)
+	if err != nil {
+		logger.Error(err)
+	}
+	location := Location{}
+	body, _ := io.ReadAll(response.Body)
+	err = json.Unmarshal(body, &location)
+	if err != nil {
+		logger.Error(err)
+	}
+	if location.Country != "China" && location.Country != "china" {
+		logger.Infof("国外IP: %s, 国家: %s", ip, location.Country)
+		pureJsonMsg(c, false, "非国内IP")
+		return
+	}
 	var form LoginForm
-	err := c.ShouldBind(&form)
+	err = c.ShouldBind(&form)
 	if err != nil {
 		pureJsonMsg(c, false, "数据格式错误")
 		return
@@ -61,7 +85,7 @@ func (a *IndexController) login(c *gin.Context) {
 	timeStr := time.Now().Format("2006-01-02 15:04:05")
 	if user == nil {
 		job.NewStatsNotifyJob().UserLoginNotify(form.Username, getRemoteIp(c), timeStr, 0)
-		logger.Infof("wrong username or password: \"%s\" \"%s\"", form.Username, form.Password)
+		logger.Infof("wrong username or password: \"%s\" \"%s\" ip: \"%s\"", form.Username, form.Password, c.ClientIP())
 		pureJsonMsg(c, false, "用户名或密码错误")
 		return
 	} else {
